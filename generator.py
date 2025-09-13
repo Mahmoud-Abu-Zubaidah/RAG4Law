@@ -2,6 +2,9 @@ import os
 import torch
 from dotenv import load_dotenv
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from langchain_core.prompts import PromptTemplate
+from langchain.chains import LLMChain
+from langchain.prompts import ChatPromptTemplate
 
 
 def __init_env():
@@ -20,13 +23,49 @@ def __init_env():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     return model_name, token, device
 
+def template_prompt():
+    """
+    Create a prompt template for legal case analysis in Arabic.
+    Returns a ChatPromptTemplate object.
+
+    """
+    template = """
+    أنت مساعد قانوني ذكي. مهمتك تحليل الحالة القانونية التالية بدقة بناءً على نصوص القوانين المدرجة في السياق فقط، ثم تحديد مدى انطباق أي قانون على هذه الحالة مع تبرير رأيك.
+
+    == وصف الحالة للمستخدم ==
+    {case_description}
+
+    == نصوص القوانين أو المواد ذات الصلة (سياق مسترجع) ==
+    {legal_context}
+
+    == التعليمات ==
+    - حلل القضية بدقة ثم وضّح العناصر القانونية الأساسية.
+    - اربط الوقائع مع القوانين المسترجعة فقط (لا تستخدم خبرتك الذاتية أو مصادر خارج ما هو معروض).
+    - اذكر نصوص أو مواد القانون المناسبة وأسباب الانطباق.
+    - إذا لم يطبق أي قانون بدقة، لا تحلل شيء واطلب المزيد من التوضيح.
+
+    أجب باللغة العربية الفصحى وبأسلوب قانوني مختصر وواضح.
+    جاوب بالنموذج التالي:
+    ---
+    تحليل الوقائع القانونية:
+    [تحليل موجز]
+
+    القوانين الملائمة:
+    [أذكر المواد/النصوص المناسبة]
+
+    الرأي النهائي:
+    [رأي قانوني مختصر وإخلاء مسؤولية: هذا التحليل للأغراض التوضيحية فقط]
+    """
+
+    prompt = ChatPromptTemplate.from_template(template)
+    # prompt = prompt.format(case_description = case_description,legal_context= legal_context)
+    return prompt
 
 def initialize_decoder():
     """
     Load a HuggingFace causal LM model with 4-bit quantization.
     Returns (tokenizer, model).
     """
-    global device
     model_name, token, device = __init_env()
     
     quant_config = BitsAndBytesConfig(
@@ -44,20 +83,22 @@ def initialize_decoder():
         quantization_config=quant_config,
         token=token,
     )
-    return tokenizer, model
+    return tokenizer, model, device
 
 
-def get_response(text, tokenizer, model):
-    input_ids = tokenizer(text, return_tensors="pt").input_ids
-    inputs = input_ids.to(device)
-    input_len = inputs.shape[-1]
+def get_response(text, laws, tokenizer, model, device):
+    """Generate a response from the model given input text."""
+    prompt = template_prompt()
+    prompt = prompt.format(case_description=text, legal_context=laws)
+    
+    input_ids = tokenizer(prompt, return_tensors="pt").input_ids.to(device)
 
     generate_ids = model.generate(
-        inputs,
+        input_ids,
         top_p=0.9,
         temperature=0.4,
-        max_length=2048 - input_len,
-        min_length=input_len + 4,
+        max_new_tokens=2024,   
+        min_new_tokens=4,
         repetition_penalty=1.2,
         do_sample=True,
     )
@@ -68,6 +109,8 @@ def get_response(text, tokenizer, model):
         clean_up_tokenization_spaces=True,
     )[0]
 
-    # Optional: clean response if AI markers exist
-    response = response.split("### Response: [|AI|]")[-1].strip()
+    # Clean: remove the prompt if still present
+    if response.startswith(prompt):
+        response = response[len(prompt):].strip()
+
     return response

@@ -14,18 +14,19 @@ if __name__ == "__main__":
     # preprocess_laws()
 
     # 1. Build DB (only first time)
-    prepare_vector_db()
+    # prepare_vector_db()
 
     # 2. Retrieve docs
     docs = Retrive_relative_documents(prompt, K=3)
-    print("Retrieved docs:", docs)
+    laws="".join([doc for doc in docs])
+    # print("Retrieved docs:", laws)
 
     # 3. Load decoder model
 
-    tokenizer, model = initialize_decoder()
+    tokenizer, model, device = initialize_decoder()
 
     # 4. Generate response
     response = get_response(
-        "ألجواب\n", tokenizer, model
+        prompt, laws, tokenizer, model, device
     )
     print("\nAI Response:\n", response)
