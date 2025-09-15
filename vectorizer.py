@@ -9,7 +9,7 @@ from langchain_chroma import Chroma
 
 warnings.filterwarnings('ignore')
 load_dotenv()
-os.environ["HF_HOME"] = "D:/cache"
+os.environ["HF_HOME"] = "/cache"
 
 def prepare_vector_db():
     """Load documents, split them, embed, and store in Chroma."""

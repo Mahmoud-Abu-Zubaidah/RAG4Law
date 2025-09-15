@@ -12,7 +12,7 @@ def __init_env():
     Load environment variables and set HF cache path.
     """
     load_dotenv()
-    os.environ["HF_HOME"] = "D:/cache"
+    os.environ["HF_HOME"] = "/cache"
 
     model_name = os.getenv("decoder_model_name")
     token = os.getenv("hugging_face_key")

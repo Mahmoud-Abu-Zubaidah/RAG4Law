@@ -15,7 +15,7 @@ def __init_env():
     """
 
     load_dotenv()
-    os.environ["HF_HOME"] = "D:/cache"
+    os.environ["HF_HOME"] = "/cache"
 
     embedding_model_name = os.getenv('embedding_model_name')
     V_DB_name = os.getenv('VectorDB_Name')

@@ -6,7 +6,7 @@ from preparing_laws import preprocess_laws
 import os
 
 load_dotenv()
-os.environ["HF_HOME"] = "D:/cache"
+os.environ["HF_HOME"] = "/cache"
 
 if __name__ == "__main__":
     prompt = "إذا ارتكب الجاني جريمته لمصلحة دولة أجنبية أو تنظيم غير مشروع"
